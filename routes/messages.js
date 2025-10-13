@@ -1,5 +1,6 @@
 import express from "express";
 import Message from "../models/Message.js";
+import sendMessage from "../utils/sendMessage.js";
 
 const router = express.Router();
 
@@ -34,5 +35,35 @@ router.get("/", async (req, res) => {
     res.status(500).json({ ok: false, error: err.message });
   }
 });
+
+// --- Enviar mensaje de texto libre (solo si la conversación está abierta)
+router.post("/sendText", async (req, res) => {
+  try {
+    const { phone, body } = req.body;
+
+    if (!phone || !body) {
+      return res.status(400).json({ ok: false, error: "Faltan datos (phone o body)" });
+    }
+
+    // Llamamos a la función genérica de envío (usa la API de Meta)
+    const result = await sendMessage(phone, body); // 👈 se le pasa texto plano ahora
+
+    // Guardamos también el mensaje en la base de datos
+    const msg = await Message.create({
+      phone,
+      body,
+      direction: "out",
+      status: result?.status || "sent",
+      messageId: result?.data?.messages?.[0]?.id || null,
+      timestamp: new Date()
+    });
+
+    res.json({ ok: true, result, msg });
+  } catch (err) {
+    console.error("❌ Error al enviar mensaje libre:", err);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
+
 
 export default router;
