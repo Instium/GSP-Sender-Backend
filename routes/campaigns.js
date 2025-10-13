@@ -5,6 +5,17 @@ import Message from "../models/Message.js";
 
 const router = express.Router();
 
+// --- NUEVO: obtener todas las campañas ---
+router.get("/", async (req, res) => {
+  try {
+    const campaigns = await Campaign.find().sort({ createdAt: -1 });
+    res.json({ ok: true, total: campaigns.length, campaigns });
+  } catch (err) {
+    console.error("Error al obtener campañas:", err);
+    res.status(500).json({ ok: false, message: "Error al obtener campañas" });
+  }
+});
+
 router.post("/send", async (req, res) => {
   const { numbers, nombre, plan, name } = req.body;
   if (!numbers?.length) return res.status(400).json({ error: "Faltan números" });
