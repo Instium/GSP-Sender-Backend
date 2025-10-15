@@ -20,6 +20,7 @@ router.get("/", async (req, res) => {
     if (phone) filter.phone = phone;
     if (direction) filter.direction = direction;
     if (status) filter.status = status;
+    if (campaignId) filter.campaignId = campaignId; // 🔹 Nuevo filtro
 
     const messages = await Message.find(filter)
       .sort({ timestamp: -1 })
