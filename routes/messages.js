@@ -14,7 +14,7 @@ const router = express.Router();
  */
 router.get("/", async (req, res) => {
   try {
-    const { phone, direction, status, limit } = req.query;
+    const { phone, direction, status, limit, campaignId } = req.query;
     const filter = {};
 
     if (phone) filter.phone = phone;
