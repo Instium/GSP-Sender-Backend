@@ -30,7 +30,7 @@ router.post("/send", async (req, res) => {
   const results = [];
 
   for (const phone of numbers) {
-    const result = await sendMessage(phone, null, "prueba_oct"); // puedes cambiar plantilla o pasar variables
+    const result = await sendMessage(phone, null, "hello_world"); // puedes cambiar plantilla o pasar variables
 
     await Message.create({
       phone,
