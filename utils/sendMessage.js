@@ -2,30 +2,45 @@ import axios from "axios";
 
 /**
  * Envía un mensaje de WhatsApp.
- * - Si se pasa `text`, envía mensaje libre.
- * - Si no, usa la plantilla "hello_world" (modo prueba).
+ * Si pasas text → envía mensaje libre.
+ * Si pasas template → usa una plantilla de Meta con sus variables.
  */
-const sendMessage = async (phone, text = null) => {
+const sendMessage = async (phone, text = null, templateName = null, variables = []) => {
   try {
     const url = `https://graph.facebook.com/${process.env.API_VERSION}/${process.env.PHONE_ID}/messages`;
 
-    // --- Detecta tipo de mensaje
-    const payload = text
-      ? {
-          messaging_product: "whatsapp",
-          to: phone,
-          type: "text",
-          text: { body: text },
-        }
-      : {
-          messaging_product: "whatsapp",
-          to: phone,
-          type: "template",
-          template: {
-            name: "hello_world",
-            language: { code: "en_US" },
-          },
-        };
+    let payload;
+
+    if (text) {
+      // 🔹 Modo texto libre
+      payload = {
+        messaging_product: "whatsapp",
+        to: phone,
+        type: "text",
+        text: { body: text },
+      };
+    } else if (templateName) {
+      // 🔹 Modo plantilla
+      payload = {
+        messaging_product: "whatsapp",
+        to: phone,
+        type: "template",
+        template: {
+          name: templateName,
+          language: { code: "es_MX" },
+          components: variables.length
+            ? [
+                {
+                  type: "body",
+                  parameters: variables.map((v) => ({ type: "text", text: v })),
+                },
+              ]
+            : [],
+        },
+      };
+    } else {
+      throw new Error("Falta texto o nombre de plantilla");
+    }
 
     const headers = {
       Authorization: `Bearer ${process.env.META_TOKEN}`,
@@ -35,7 +50,19 @@ const sendMessage = async (phone, text = null) => {
     const response = await axios.post(url, payload, { headers });
     console.log(`✅ Enviado a ${phone}:`, response.data);
 
-    return { phone, status: "sent", data: response.data };
+    // 🔹 Guarda texto que realmente se envió
+    const messageText =
+      text ||
+      (variables.length
+        ? `[${templateName}] ${variables.join(" ")}`
+        : `[${templateName}]`);
+
+    return {
+      phone,
+      status: "sent",
+      data: response.data,
+      messageText,
+    };
   } catch (error) {
     console.error("❌ Error al enviar:", error.response?.data || error.message);
     return {

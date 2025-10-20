@@ -30,20 +30,21 @@ router.post("/send", async (req, res) => {
   const results = [];
 
   for (const phone of numbers) {
-    const result = await sendMessage(phone);
-    results.push(result);
+    const result = await sendMessage(phone, null, "prueba_oct"); // puedes cambiar plantilla o pasar variables
 
     await Message.create({
       phone,
+      body: result.messageText, // 🔹 ahora guarda el texto visible
       template: "prueba_oct",
       status: result.status,
       messageId: result.data?.messages?.[0]?.id || null,
-      campaignId: campaign._id
+      campaignId: campaign._id,
     });
 
     result.status === "sent" ? successful++ : failed++;
-    await new Promise(r => setTimeout(r, 6000));
+    await new Promise((r) => setTimeout(r, 6000));
   }
+
 
   campaign.successful = successful;
   campaign.failed = failed;
