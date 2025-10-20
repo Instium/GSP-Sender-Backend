@@ -27,7 +27,7 @@ const sendMessage = async (phone, text = null, templateName = null, variables = 
         type: "template",
         template: {
           name: templateName,
-          language: { code: "es_MX" },
+          language: { code: "en_US" },
           components: variables.length
             ? [
                 {
