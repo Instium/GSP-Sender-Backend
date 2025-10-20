@@ -29,7 +29,7 @@ router.get("/", async (req, res) => {
     res.json({
       ok: true,
       total: messages.length,
-      messages
+      messages,
     });
   } catch (err) {
     console.error("❌ Error al obtener mensajes:", err.message);
@@ -37,26 +37,28 @@ router.get("/", async (req, res) => {
   }
 });
 
-// --- Enviar mensaje de texto libre (solo si la conversación está abierta)
+// --- Enviar mensaje de texto libre ---
 router.post("/sendText", async (req, res) => {
   try {
     const { phone, body } = req.body;
 
     if (!phone || !body) {
-      return res.status(400).json({ ok: false, error: "Faltan datos (phone o body)" });
+      return res
+        .status(400)
+        .json({ ok: false, error: "Faltan datos (phone o body)" });
     }
 
-    // Llamamos a la función genérica de envío (usa la API de Meta)
-    const result = await sendMessage(phone, body); // 👈 se le pasa texto plano ahora
+    // 🚀 Llamada a la API de Meta
+    const result = await sendMessage(phone, body);
 
-    // Guardamos también el mensaje en la base de datos
+    // Guardar mensaje
     const msg = await Message.create({
       phone,
       body,
       direction: "out",
       status: result?.status || "sent",
       messageId: result?.data?.messages?.[0]?.id || null,
-      timestamp: new Date()
+      timestamp: new Date(),
     });
 
     res.json({ ok: true, result, msg });
@@ -66,5 +68,25 @@ router.post("/sendText", async (req, res) => {
   }
 });
 
+// --- 🗑️ Eliminar todos los mensajes de un número ---
+router.delete("/", async (req, res) => {
+  try {
+    const { phone } = req.query;
+    if (!phone)
+      return res
+        .status(400)
+        .json({ ok: false, error: "Falta el parámetro 'phone'" });
+
+    const result = await Message.deleteMany({ phone });
+    res.json({
+      ok: true,
+      deleted: result.deletedCount,
+      message: `Eliminados ${result.deletedCount} mensajes de ${phone}`,
+    });
+  } catch (err) {
+    console.error("❌ Error al eliminar mensajes:", err.message);
+    res.status(500).json({ ok: false, error: err.message });
+  }
+});
 
 export default router;
