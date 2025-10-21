@@ -1,11 +1,12 @@
 // backend/routes/webhook.js
 import express from "express";
 import Message from "../models/Message.js";
+import sendMessage from "../utils/sendMessage.js"; // 👈 lo usamos para responder automáticamente
 
 const router = express.Router();
 
 // ======================================================
-// 🔹 Verificación inicial del webhook
+// 🔹 Verificación inicial del webhook (Meta)
 // ======================================================
 router.get("/", (req, res) => {
   const verify = req.query["hub.verify_token"];
@@ -15,7 +16,7 @@ router.get("/", (req, res) => {
 });
 
 // ======================================================
-// 🔹 Recepción de eventos de WhatsApp (mensajes y estados)
+// 🔹 Recepción de eventos de WhatsApp (mensajes / estados / botones)
 // ======================================================
 router.post("/", async (req, res) => {
   try {
@@ -47,18 +48,46 @@ router.post("/", async (req, res) => {
 
             // 🔸 Si el mensaje es de tipo "button" (respuesta rápida)
             else if (msg.type === "button" && msg.button?.text) {
+              const buttonText = msg.button.text;
+              console.log(`🟢 Botón presionado por ${from}: ${buttonText}`);
+
+              // Guardamos la acción en la BD
               await Message.create({
                 phone: from,
-                body: `🟢 Usuario presionó: "${msg.button.text}"`,
+                body: `🟢 Usuario presionó: "${buttonText}"`,
                 direction: "in",
                 status: "received",
                 messageId: msg.id,
                 timestamp,
               });
-              console.log(`🟢 Botón presionado por ${from}: ${msg.button.text}`);
+
+              // 🔹 Enviar respuesta automática según el botón
+              let replyText = "";
+              if (buttonText.toLowerCase().includes("sí")) {
+                replyText =
+                  "✨ ¡Excelente! En breve te compartiremos más información sobre nuestros servicios y promociones.";
+              } else if (buttonText.toLowerCase().includes("no")) {
+                replyText =
+                  "👌 Perfecto 😊 Si cambias de opinión, estamos aquí para ayudarte.";
+              } else {
+                replyText =
+                  "✅ Gracias por tu respuesta. Un asesor te contactará si es necesario.";
+              }
+
+              // 📨 Enviar mensaje de texto de respuesta
+              await sendMessage(from, replyText, null, []);
+
+              // Guardar también el mensaje saliente
+              await Message.create({
+                phone: from,
+                body: replyText,
+                direction: "out",
+                status: "sent",
+                timestamp: new Date(),
+              });
             }
 
-            // 🔸 Otros tipos (puedes expandir luego: image, interactive, etc.)
+            // 🔸 Otros tipos no manejados (image, interactive, etc.)
             else {
               console.log(`⚪ Mensaje no manejado de tipo: ${msg.type}`);
             }
